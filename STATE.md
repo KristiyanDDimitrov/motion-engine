@@ -1,0 +1,1 @@
+2026-08-30T00:00:00Z - BOOTSTRAP complete. Created files, set up CMake, scripts and empty test runner. Build fails because cmake is not installed.
