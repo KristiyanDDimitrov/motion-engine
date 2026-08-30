@@ -1,20 +1,32 @@
 #include "PluginEditor.h"
 
-PluginEditor::PluginEditor (juce::AudioProcessor& p)
-    : AudioProcessorEditor (&p)
+//==============================================================================
+MotionEngineAudioProcessorEditor::MotionEngineAudioProcessorEditor (MotionEngineAudioProcessor& p)
+    : AudioProcessorEditor (&p),
+      processor (p)
 {
+    // Make sure that before the constructor has finished, you've set the
+    // editor's size to whatever you need it to be.
     setSize (400, 300);
 }
 
-PluginEditor::~PluginEditor()
+MotionEngineAudioProcessorEditor::~MotionEngineAudioProcessorEditor()
 {
 }
 
-void PluginEditor::paint (juce::Graphics& g)
+//==============================================================================
+void MotionEngineAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colours::black);
+    // (Our component is opaque, so we must completely fill the background with a solid colour)
+    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
+
+    g.setColour (juce::Colours::white);
+    g.setFont (15.0f);
+    g.drawFittedText ("MotionEngine", getLocalBounds(), juce::Justification::centredTop, 1);
 }
 
-void PluginEditor::resized()
+void MotionEngineAudioProcessorEditor::resized()
 {
+    // This is generally where you'll want to lay out the positions of any
+    // controls, as well as their relative sizes.
 }

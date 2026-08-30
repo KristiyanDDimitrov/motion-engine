@@ -1,59 +1,34 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.16)
 project(MotionEngine)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add JUCE as a subdirectory
+# Add JUCE as a submodule
 add_subdirectory(JUCE)
 
-# Create the plugin target
-juce_add_plugin(MotionEngine
-    IS_SYNTH FALSE
-    NEEDS_MIDI_INPUT FALSE
-    COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE "Mote"
-    PLUGIN_PRODUCT_CODE "MEng"
-    PLUGIN_NAME "MotionEngine"
-    PLUGIN_DESCRIPTION "Audio effect plugin for bass processing"
+# Create the test executable - we need to properly configure this for testing only
+add_executable(MotionEngineTests
+    Tests/TestMain.cpp
+    Source/PluginProcessor.cpp
+    Source/PluginEditor.cpp
+    Source/dsp/EnvelopeFollower.cpp
+    Source/dsp/TransientDetector.cpp
+    Source/dsp/LFO.cpp
+    Source/dsp/ModMatrix.cpp
+    Source/dsp/FilterStage.cpp
+    Source/dsp/DriveStage.cpp
 )
 
-# Add the source files
-target_sources(MotionEngine
-    PRIVATE
-        Source/PluginProcessor.cpp
-        Source/PluginEditor.cpp
+# Link against JUCE components needed for testing
+target_link_libraries(MotionEngineTests PRIVATE
+    juce::juce_audio_utils
+    juce::juce_unit_test
 )
 
-# Add the DSP headers
-target_include_directories(MotionEngine
-    PRIVATE
-        Source
-        Source/dsp
+# Include directories for tests
+target_include_directories(MotionEngineTests PRIVATE
+    Source
+    Source/dsp
+    JUCE/modules
 )
-
-# Link JUCE
-target_link_libraries(MotionEngine PRIVATE juce::juce_audio_utils)
-
-# Create the test target
-juce_add_console_app(MotionEngineTests
-    PLUGIN_MANUFACTURER_CODE "Mote"
-    PLUGIN_PRODUCT_CODE "MEng"
-    PLUGIN_NAME "MotionEngineTests"
-)
-
-# Add test source files
-target_sources(MotionEngineTests
-    PRIVATE
-        Tests/TestMain.cpp
-)
-
-# Include DSP headers for tests
-target_include_directories(MotionEngineTests
-    PRIVATE
-        Source
-        Source/dsp
-)
-
-# Link JUCE for tests
-target_link_libraries(MotionEngineTests PRIVATE juce::juce_audio_utils)

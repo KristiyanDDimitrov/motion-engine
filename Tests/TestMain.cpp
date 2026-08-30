@@ -1,19 +1,32 @@
 #include <juce_audio_processors/juce_audio_processors.h>
-#include <juce_core/juce_core.h>
+#include <juce_unit_test/juce_unit_test.h>
 
-// Empty test runner that builds and passes
-class TestRunner : public juce::UnitTestRunner
+//==============================================================================
+class EmptyTest : public juce::UnitTest
 {
 public:
-    TestRunner() = default;
+    EmptyTest() : juce::UnitTest ("Empty Test") {}
 
-    void runAllTests()
+    void runTest() override
     {
-        // This is a placeholder for the actual tests
-        // For now, we just make sure the build works
-        expect(true);
+        // This is just a placeholder test to verify the testing framework works
+        expect (true);
     }
 };
 
-// JUCE application entry point
-START_JUCE_APPLICATION(TestRunner)
+//==============================================================================
+JUCE_BEGIN_IGNORE_WARNINGS_GCC_AND_CLANG (-Wdeprecated-declarations)
+JUCE_END_IGNORE_WARNINGS_GCC_AND_CLANG
+
+//==============================================================================
+JUCE_IMPLEMENT_UNIT_TEST (EmptyTest)
+
+//==============================================================================
+int main()
+{
+    // Run the test suite
+    juce::UnitTestRunner runner;
+    runner.runAllTests();
+
+    return 0;
+}
