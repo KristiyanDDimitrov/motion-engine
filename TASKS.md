@@ -1,4 +1,4 @@
-# Task list
+# MotionEngine Task List
 
 - [x] T-01 Bootstrap repo, CMake, scripts, empty test runner that builds and passes
 - [ ] T-02 EnvelopeFollower + tests: rises on burst, decays toward zero, never negative, longer attack reaches peak later
