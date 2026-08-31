@@ -2,21 +2,24 @@
 
 namespace MotionEngineDSP
 {
-    class EnvelopeFollower
-    {
-    public:
-        EnvelopeFollower() = default;
-        ~EnvelopeFollower() = default;
 
-        void setAttack(float attackMs);
-        void setRelease(float releaseMs);
-        void setSensitivity(float sensitivity);
-        float process(float input);
+class EnvelopeFollower
+{
+public:
+    EnvelopeFollower() = default;
+    ~EnvelopeFollower() = default;
 
-    private:
-        float attackTime = 0.0f;
-        float releaseTime = 0.0f;
-        float sensitivity = 0.0f;
-        float envelope = 0.0f;
-    };
-}
+    void reset();
+    float process(float input);
+    void setAttack(float attackMs);
+    void setRelease(float releaseMs);
+    void setSensitivity(float sensitivity);
+
+private:
+    float attackMs = 10.0f;
+    float releaseMs = 50.0f;
+    float sensitivity = 0.5f;
+    float envelope = 0.0f;
+};
+
+} // namespace MotionEngineDSP

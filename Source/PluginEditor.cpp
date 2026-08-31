@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "PluginProcessor.h"
 
 //==============================================================================
 MotionEngineAudioProcessorEditor::MotionEngineAudioProcessorEditor (MotionEngineAudioProcessor& p)
@@ -22,11 +23,11 @@ void MotionEngineAudioProcessorEditor::paint (juce::Graphics& g)
 
     g.setColour (juce::Colours::white);
     g.setFont (15.0f);
-    g.drawFittedText ("MotionEngine", getLocalBounds(), juce::Justification::centredTop, 1);
+    g.drawFittedText ("MotionEngine", getLocalBounds(), juce::Justification::centred, 1);
 }
 
 void MotionEngineAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
-    // controls, as well as their relative sizes.
+    // controls in your editor...
 }

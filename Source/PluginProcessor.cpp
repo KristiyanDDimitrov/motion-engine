@@ -4,74 +4,15 @@
 //==============================================================================
 MotionEngineAudioProcessor::MotionEngineAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties().withMainOutputs (2, juce::AudioChannelSet::stereo()))
+     : AudioProcessor (BusesProperties()
+                       .withMainInputChannels (juce::AudioChannelSet::stereo())
+                       .withMainOutputChannels (juce::AudioChannelSet::stereo())
+                       )
 #endif
 {
 }
 
 MotionEngineAudioProcessor::~MotionEngineAudioProcessor()
-{
-}
-
-//==============================================================================
-const juce::String MotionEngineAudioProcessor::getName() const
-{
-    return JucePlugin_Name;
-}
-
-bool MotionEngineAudioProcessor::acceptsMidi() const
-{
-   #if JucePlugin_WantsMidiInput
-    return true;
-   #else
-    return false;
-   #endif
-}
-
-bool MotionEngineAudioProcessor::producesMidi() const
-{
-   #if JucePlugin_ProducesMidiOutput
-    return true;
-   #else
-    return false;
-   #endif
-}
-
-bool MotionEngineAudioProcessor::isMidiEffect() const
-{
-   #if JucePlugin_IsMidiEffect
-    return true;
-   #else
-    return false;
-   #endif
-}
-
-double MotionEngineAudioProcessor::getTailLengthSeconds() const
-{
-    return 0.0;
-}
-
-int MotionEngineAudioProcessor::getNumPrograms()
-{
-    return 1; // NB: some hosts don't cope very well if you tell them there are 0 programs,
-              // so this should be at least 1, even if you're not really implementing programs.
-}
-
-int MotionEngineAudioProcessor::getCurrentProgram()
-{
-    return 0;
-}
-
-void MotionEngineAudioProcessor::setCurrentProgram (int index)
-{
-}
-
-const juce::String MotionEngineAudioProcessor::getProgramName (int index)
-{
-    return {};
-}
-
-void MotionEngineAudioProcessor::changeProgramName (int index, const juce::String& newName)
 {
 }
 
@@ -90,44 +31,88 @@ void MotionEngineAudioProcessor::releaseResources()
 
 bool MotionEngineAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
-  #if JucePlugin_IsMidiEffect
-    juce::ignoreUnused (layouts);
-    return true;
-  #else
     // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
-
-    // This checks if the input layout matches the output layout
-   #if ! JucePlugin_IsSynth
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-        return false;
-   #endif
-
-    return true;
-  #endif
+    // In this case we only support stereo, so we just need to make sure that
+    // both input and output have the same number of channels.
+    return layouts.getMainInputBuses().size() == 1 && layouts.getMainOutputBuses().size() == 1;
 }
 
 void MotionEngineAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    juce::ignoreUnused (midiMessages);
+    juce::ignoreUnused(midiMessages);
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data.
-    buffer.clear();
+    // In case we have more outputs than inputs, this code should clear any output
+    // channels that didn't contain input data, (because these aren't guaranteed to
+    // be empty - they may contain garbage).
+    for (int i = getMainOutputChannelSize(); i < getTotalNumOutputChannels(); ++i)
+        buffer.clear(i, 0, buffer.getNumSamples());
+
+    // Add your signal processing code here...
 }
 
 //==============================================================================
-bool MotionEngineAudioProcessor::hasEditor() const
-{
-    return true; // For a plugin without a GUI, you could return false here.
-}
-
 juce::AudioProcessorEditor* MotionEngineAudioProcessor::createEditor()
 {
-    return new MotionEngineAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor (*this);
+}
+
+bool MotionEngineAudioProcessor::hasEditor() const
+{
+    return true; // For a real plugin, this should be true
+}
+
+//==============================================================================
+const juce::String MotionEngineAudioProcessor::getName() const
+{
+    return JucePlugin_Name;
+}
+
+bool MotionEngineAudioProcessor::acceptsMidi() const
+{
+    return false;
+}
+
+bool MotionEngineAudioProcessor::producesMidi() const
+{
+    return false;
+}
+
+bool MotionEngineAudioProcessor::isMidiEffect() const
+{
+    return false;
+}
+
+double MotionEngineAudioProcessor::getTailLengthSeconds() const
+{
+    return 0.0;
+}
+
+//==============================================================================
+int MotionEngineAudioProcessor::getNumPrograms()
+{
+    return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
+                // so this should be at least 1, even if you're not really implementing programs.
+}
+
+int MotionEngineAudioProcessor::getCurrentProgram()
+{
+    return 0;
+}
+
+void MotionEngineAudioProcessor::setCurrentProgram (int index)
+{
+    juce::ignoreUnused(index);
+}
+
+const juce::String MotionEngineAudioProcessor::getProgramName (int index)
+{
+    juce::ignoreUnused(index);
+    return {};
+}
+
+void MotionEngineAudioProcessor::changeProgramName (int index, const juce::String& newName)
+{
+    juce::ignoreUnused(index, newName);
 }
 
 //==============================================================================
@@ -135,17 +120,12 @@ void MotionEngineAudioProcessor::getStateInformation (juce::MemoryBlock& destDat
 {
     // You should use this method to store your parameters in the MemoryBlock.
     // The values stored here will be restored when the plugin is reloaded.
+    juce::ignoreUnused(destData);
 }
 
 void MotionEngineAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from the MemoryBlock.
-    // The values stored here will be restored when the plugin is reloaded.
-}
-
-//==============================================================================
-// This creates new instances of the plugin
-juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
-{
-    return new MotionEngineAudioProcessor();
+    // You should use this method to restore your parameters from this memory block,
+    // whose contents were previously obtained from getStateInformation().
+    juce::ignoreUnused(data, sizeInBytes);
 }

@@ -4,13 +4,11 @@ set -e
 
 echo "Running tests for MotionEngine..."
 
-# Build the tests first
-mkdir -p build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . --config Release
+# Build the test executable first
+./scripts/build.sh
 
-# Run the test executable
-./MotionEngineTests
+# Run the tests
+echo "Running MotionEngineTests..."
+build/MotionEngineTests
 
-echo "All tests passed!"
+echo "All tests passed successfully."

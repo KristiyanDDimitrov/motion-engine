@@ -1,32 +1,58 @@
-#include <juce_audio_processors/juce_audio_processors.h>
-#include <juce_unit_test/juce_unit_test.h>
+#include <JuceHeader.h>
 
-//==============================================================================
-class EmptyTest : public juce::UnitTest
+// This is just a placeholder for now - we'll add actual tests later
+class MotionEngineTestRunner : public juce::UnitTestRunner
 {
 public:
-    EmptyTest() : juce::UnitTest ("Empty Test") {}
+    MotionEngineTestRunner() = default;
+    ~MotionEngineTestRunner() override = default;
 
-    void runTest() override
+    void runAllTests()
     {
-        // This is just a placeholder test to verify the testing framework works
-        expect (true);
+        // Placeholder for running all tests
+        juce::Logger::outputDebugString("MotionEngine test runner initialized");
     }
 };
 
 //==============================================================================
-JUCE_BEGIN_IGNORE_WARNINGS_GCC_AND_CLANG (-Wdeprecated-declarations)
-JUCE_END_IGNORE_WARNINGS_GCC_AND_CLANG
-
-//==============================================================================
-JUCE_IMPLEMENT_UNIT_TEST (EmptyTest)
-
-//==============================================================================
-int main()
+class MotionEngineTestsApplication  : public juce::JUCEApplication
 {
-    // Run the test suite
-    juce::UnitTestRunner runner;
-    runner.runAllTests();
+public:
+    MotionEngineTestsApplication() = default;
+    ~MotionEngineTestsApplication() override = default;
 
-    return 0;
-}
+    void initialise (const juce::String& commandLine) override
+    {
+        // This method is called when the app starts up.
+        // Run tests here
+        MotionEngineTestRunner runner;
+        runner.runAllTests();
+
+        // Exit with success code
+        juce::JUCEApplication::quit();
+    }
+
+    void shutdown() override
+    {
+        // Called when the application shuts down.
+    }
+
+    const juce::String getApplicationName() override
+    {
+        return "MotionEngineTests";
+    }
+
+    const juce::String getApplicationVersion() override
+    {
+        return "1.0.0";
+    }
+
+    bool moreThanOneInstanceAllowed() override
+    {
+        return false;
+    }
+};
+
+//==============================================================================
+// This macro generates the main() routine that launches the app.
+START_JUCE_APPLICATION (MotionEngineTestsApplication)
