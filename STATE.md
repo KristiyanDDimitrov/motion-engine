@@ -8,6 +8,5 @@ All files created for bootstrap task:
 - scripts/build.sh, test.sh, validate.sh
 - README.md
 - TASKS.md updated to mark T-01 as complete
-- JUCE submodule added
 
 All scripts are executable. CMake builds successfully.
