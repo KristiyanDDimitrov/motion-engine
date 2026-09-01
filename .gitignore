@@ -1,0 +1,15 @@
+# local driver config / secrets - never commit
+.env.motionengine
+
+# build output
+build/
+
+# driver runtime state
+run.log
+run.*.log
+.driver.pgid
+.driver.pid
+.driver_done
+
+# macOS
+.DS_Store
