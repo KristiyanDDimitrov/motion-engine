@@ -148,3 +148,9 @@ void MotionEngineAudioProcessor::setStateInformation (const void* data, int size
     // whose contents were previously obtained from getStateInformation().
     juce::ignoreUnused(data, sizeInBytes);
 }
+//==============================================================================
+// This creates new instances of the plugin.
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
+    return new MotionEngineAudioProcessor();
+}
