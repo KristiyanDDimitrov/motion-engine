@@ -2,7 +2,7 @@
 .env.motionengine
 
 # build output
-build/
+build*/
 
 # driver runtime state
 run.log
@@ -11,5 +11,6 @@ run.*.log
 .driver.pid
 .driver_done
 
-# macOS
+# macOS / IDE
 .DS_Store
+.idea/

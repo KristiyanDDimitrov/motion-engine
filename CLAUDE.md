@@ -1,33 +1,48 @@
 # MotionEngine
 
-## Build
+Audio-effect VST3 plugin built with JUCE 8. Input is the user's already-designed
+bass patch (Serum, Vital, whatever). This plugin does not generate tone. It
+analyses the incoming audio and uses that analysis, plus its own modulators, to
+drive a processing chain. All analysis is audio-derived; there is no MIDI input
+in v1.
+
+## Commands
+
 ```bash
-./scripts/build.sh
+./scripts/build.sh            # configure + build Release
+./scripts/test.sh             # build, then run MotionEngineTests
+./scripts/validate.sh         # pluginval, strictness 5
+./scripts/validate.sh 10      # pluginval, strictness 10
 ```
 
-## Test
-```bash
-./scripts/test.sh
-```
-
-## Validate
-```bash
-./scripts/validate.sh
-```
+Build artefacts:
+- plugin: `build/MotionEngine_artefacts/Release/VST3/MotionEngine.vst3`
+- tests:  `build/MotionEngineTests_artefacts/Release/MotionEngineTests`
 
 ## Hard constraints
-- Never modify anything inside `JUCE/`. It is a pinned dependency.
-- Never run `git push`, never `rm -rf` outside this repo, never write to `~/Library` except via CMake's `COPY_PLUGIN_AFTER_BUILD`.
-- No custom GUI. Use `juce::GenericAudioProcessorEditor` so parameters are usable in Live immediately and GUI tests pass trivially.
+
+- Never modify anything inside `JUCE/`. It is a pinned submodule.
+- Never modify `drive.sh`, `start.sh`, `stop.sh`, `status.sh`, or
+  `.env.motionengine`. These run the loop that invokes you; they are not part
+  of the plugin project and are never the right fix for a task. If a task
+  seems to require changing one of them, it doesn't — stop and write why in
+  `STATE.md` instead.
+- Never modify `PROMPT.md` or this file (`CLAUDE.md`). Your instructions and
+  the spec are not something to edit mid-task.
+- Never run `git push`. Never `rm -rf` outside this repo. Never write to
+  `~/Library` except via CMake's `COPY_PLUGIN_AFTER_BUILD`.
+- Do not recall JUCE APIs from memory. `grep -rn` the actual headers in
+  `JUCE/modules/` to confirm class and method names before using them. If a
+  symbol is not in the headers, it does not exist. Read only the matching
+  region, never the whole header.
+- Everything in `Source/dsp/` is header-only. No `.cpp` files there.
+- No custom GUI. Use `juce::GenericAudioProcessorEditor` so parameters are
+  usable in Live immediately and GUI tests pass trivially.
 - No allocation, locking, or logging inside `processBlock`.
+- Tests use `juce::UnitTest` / `UnitTestRunner` only. No other test framework.
 - Commit message format: `[T-XX] short description`.
 
 ## DSP spec
-
-Audio-effect plugin. Input is the user's already-designed bass patch (Serum,
-Vital, whatever). This plugin does not generate tone. It analyses the incoming
-audio and uses that analysis, plus its own modulators, to drive a processing
-chain. All analysis is audio-derived; there is no MIDI input in v1.
 
 **Analysis**
 - `EnvelopeFollower` — rectify, then attack/release smoothing. Params: attack
