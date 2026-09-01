@@ -8,7 +8,7 @@
 class MotionEngineAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
-    MotionEngineAudioProcessorEditor (MotionEngineAudioProcessor&);
+    MotionEngineAudioProcessorEditor (juce::AudioProcessor&);
     ~MotionEngineAudioProcessorEditor() override;
 
     //==============================================================================
@@ -17,7 +17,7 @@ public:
 
 private:
     // This reference is provided as a quick way for your editor to access the processor.
-    MotionEngineAudioProcessor& processor;
+    juce::AudioProcessor& processor;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MotionEngineAudioProcessorEditor)
 };

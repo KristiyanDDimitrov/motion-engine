@@ -2,7 +2,7 @@
 #include "PluginProcessor.h"
 
 //==============================================================================
-MotionEngineAudioProcessorEditor::MotionEngineAudioProcessorEditor (MotionEngineAudioProcessor& p)
+MotionEngineAudioProcessorEditor::MotionEngineAudioProcessorEditor (juce::AudioProcessor& p)
     : AudioProcessorEditor (&p),
       processor (p)
 {

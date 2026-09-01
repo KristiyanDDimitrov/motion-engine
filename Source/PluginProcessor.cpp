@@ -5,8 +5,8 @@
 MotionEngineAudioProcessor::MotionEngineAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
      : AudioProcessor (BusesProperties()
-                       .withMainInputChannels (juce::AudioChannelSet::stereo())
-                       .withMainOutputChannels (juce::AudioChannelSet::stereo())
+                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
+                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                        )
 #endif
 {
@@ -31,21 +31,40 @@ void MotionEngineAudioProcessor::releaseResources()
 
 bool MotionEngineAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
+  #if JucePlugin_IsMidiEffect
+    juce::ignoreUnused (layouts);
+    return true;
+  #else
     // This is the place where you check if the layout is supported.
     // In this case we only support stereo, so we just need to make sure that
     // both input and output have the same number of channels.
-    return layouts.getMainInputBuses().size() == 1 && layouts.getMainOutputBuses().size() == 1;
+    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
+     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+        return false;
+
+    // This checks if the input layout matches the output layout
+    #if ! JucePlugin_IsSynth
+    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
+        return false;
+    #endif
+
+    return true;
+  #endif
 }
 
 void MotionEngineAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ignoreUnused(midiMessages);
 
+    juce::ScopedNoDenormals noDenormals;
+    auto totalNumInputChannels  = getTotalNumInputChannels();
+    auto totalNumOutputChannels = getTotalNumOutputChannels();
+
     // In case we have more outputs than inputs, this code should clear any output
     // channels that didn't contain input data, (because these aren't guaranteed to
     // be empty - they may contain garbage).
-    for (int i = getMainOutputChannelSize(); i < getTotalNumOutputChannels(); ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
+    for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+        buffer.clear (i, 0, buffer.getNumSamples());
 
     // Add your signal processing code here...
 }
