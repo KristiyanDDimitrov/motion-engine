@@ -91,7 +91,7 @@ HAVE_FALLBACK=0
 
 # Tracked files the agent must never change. It runs with
 # --dangerously-skip-permissions, so this is enforced here, not merely asked for.
-HARNESS_TRACKED="drive.sh start.sh stop.sh status.sh doctor.sh PROMPT.md CLAUDE.md Tests/TestMain.cpp scripts/build.sh scripts/test.sh scripts/validate.sh"
+HARNESS_TRACKED="drive.sh start.sh stop.sh status.sh doctor.sh HARNESS.md PROMPT.md CLAUDE.md Tests/TestMain.cpp scripts/build.sh scripts/test.sh scripts/validate.sh"
 
 # ------------------------------------------------------------- system probes
 
