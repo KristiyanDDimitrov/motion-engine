@@ -310,6 +310,11 @@ kill_group() {
 #   returns the command's exit code, or 124 on hard timeout, 125 on idle stall.
 # The child is put in its own process group so the whole tree dies with it -
 # a killed `claude` that leaves children behind would wedge the next iteration.
+# pid of the agent process currently in flight, so the signal handler can take
+# it down. It lives in its OWN process group (see below), so a signal sent to
+# the driver's group does not reach it.
+CURRENT_CHILD=""
+
 watched_run() {
   local budget="$1" idle="$2" lgf="$3"; shift 3
   : > "$lgf"
@@ -321,20 +326,23 @@ watched_run() {
     fi
   ) >"$lgf" 2>&1 &
   local pid=$! start now sz last_sz last_change rc
+  CURRENT_CHILD="$pid"
   start="$(date +%s)"; last_sz=-1; last_change="$start"
   while kill -0 "$pid" 2>/dev/null; do
-    sleep 10
+    # Interruptible sleep: a plain `sleep 10` would make bash defer the TERM
+    # trap for up to ten seconds, so ./stop.sh would appear to hang.
+    sleep 10 & wait $! 2>/dev/null
     now="$(date +%s)"
     sz="$(wc -c < "$lgf" 2>/dev/null | tr -d ' ')"; sz="${sz:-0}"
     if [ "$sz" != "$last_sz" ]; then last_sz="$sz"; last_change="$now"; fi
     if [ "$budget" -gt 0 ] && [ $((now - start)) -ge "$budget" ]; then
-      kill_group "$pid"; wait "$pid" 2>/dev/null; return 124
+      kill_group "$pid"; wait "$pid" 2>/dev/null; CURRENT_CHILD=""; return 124
     fi
     if [ "$idle" -gt 0 ] && [ $((now - last_change)) -ge "$idle" ]; then
-      kill_group "$pid"; wait "$pid" 2>/dev/null; return 125
+      kill_group "$pid"; wait "$pid" 2>/dev/null; CURRENT_CHILD=""; return 125
     fi
   done
-  wait "$pid"; rc=$?; return "$rc"
+  wait "$pid"; rc=$?; CURRENT_CHILD=""; return "$rc"
 }
 
 # --------------------------------------------------------- recovery ladder
@@ -566,7 +574,18 @@ save_preflight_result() {
 
 # ---------------------------------------------------------------------- main
 
-trap 'log "driver received a signal - shutting down"; ollama_unload_all; rm -f .driver.pid; exit 130' INT TERM
+shutdown() {
+  log "driver received a signal - shutting down"
+  if [ -n "${CURRENT_CHILD:-}" ]; then
+    log "  stopping the agent process in flight (pid $CURRENT_CHILD)"
+    kill_group "$CURRENT_CHILD"
+  fi
+  ollama_unload_all
+  log "  model unloaded from memory"
+  rm -f .driver.pid
+  exit 130
+}
+trap shutdown INT TERM
 
 if [ "$CHECK_ONLY" = "1" ]; then
   preflight; rc=$?
