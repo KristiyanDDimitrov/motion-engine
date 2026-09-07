@@ -10,25 +10,45 @@ in v1.
 
 ```bash
 ./scripts/build.sh            # configure + build Release
+./scripts/build.sh --clean    # wipe build/ first
 ./scripts/test.sh             # build, then run MotionEngineTests
 ./scripts/validate.sh         # pluginval, strictness 5
 ./scripts/validate.sh 10      # pluginval, strictness 10
 ```
 
+`./scripts/test.sh` exit codes — the driver acts on these, so read them:
+`0` all passed · `1` an assertion failed · `2` no real tests registered ·
+`3` build failed · `4` test binary missing. Only `0` counts as done.
+
 Build artefacts:
 - plugin: `build/MotionEngine_artefacts/Release/VST3/MotionEngine.vst3`
 - tests:  `build/MotionEngineTests_artefacts/Release/MotionEngineTests`
 
+## Tests
+
+- Add a test as a NEW file `Tests/Test<Component>.cpp` holding a
+  `juce::UnitTest` subclass plus one static instance of it. It is discovered
+  automatically at runtime and compiled automatically by CMake.
+- `CMakeLists.txt` globs `Source/*.cpp` and `Tests/*.cpp`. **You never need to
+  edit it.** No target_sources edits, ever.
+- `Tests/TestMain.cpp` is the runner and is off limits.
+- The runner exits nonzero if any assertion fails, and also if the only thing
+  registered is its own self test — an empty suite is not a pass.
+- Every named behaviour in a task line gets its own `beginTest` block.
+
 ## Hard constraints
 
 - Never modify anything inside `JUCE/`. It is a pinned submodule.
-- Never modify `drive.sh`, `start.sh`, `stop.sh`, `status.sh`, or
-  `.env.motionengine`. These run the loop that invokes you; they are not part
-  of the plugin project and are never the right fix for a task. If a task
-  seems to require changing one of them, it doesn't — stop and write why in
-  `STATE.md` instead.
+- Never modify `drive.sh`, `start.sh`, `stop.sh`, `status.sh`, `doctor.sh`,
+  `scripts/*.sh`, `Tests/TestMain.cpp` or `.env.motionengine`. These run the
+  loop that invokes you; they are not part of the plugin project and are never
+  the right fix for a task. Edits to them are reverted automatically. If a task
+  seems to require changing one, it doesn't — write why in `STATE.md` instead.
 - Never modify `PROMPT.md` or this file (`CLAUDE.md`). Your instructions and
   the spec are not something to edit mid-task.
+- Never write a completion phrase anywhere. The driver decides completion from
+  checkbox counts and test exit codes; such phrases are stripped and the run is
+  wasted.
 - Never run `git push`. Never `rm -rf` outside this repo. Never write to
   `~/Library` except via CMake's `COPY_PLUGIN_AFTER_BUILD`.
 - Do not recall JUCE APIs from memory. `grep -rn` the actual headers in

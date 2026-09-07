@@ -51,3 +51,40 @@ reaches peak later" despite that being a named requirement. T-02 starts fresh
 next run. Sample rate is currently hardcoded to 44100 in the coefficient
 calc -- fine for now, but will need a real setSampleRate()/prepare() before
 T-04/T-11 (44.1/48/96k correctness).
+
+2026-09-07: DRIVER CORRECTION (manual, not an agent run). Full harness rebuild.
+Root causes of the failed nights, in order of importance:
+
+1. The test gate was fake. Tests/TestMain.cpp was a JUCEApplication that ran no
+   UnitTest and always exited 0, so "run ./scripts/test.sh before you commit"
+   was a no-op and any claim of completed work passed. Rewritten as a real
+   console runner: it runs every registered juce::UnitTest, prints a summary,
+   and exits 1 on any failed assertion, 2 when the only thing registered is its
+   own self test (an empty suite is no longer a pass), 3 on build failure,
+   4 when the binary is missing.
+2. PROMPT.md rule 6 still ordered the agent to append "ALL TASKS COMPLETE" -
+   the exact sentinel that ended an earlier run after one iteration. Removed.
+   PROMPT.md no longer duplicates the DSP spec or the task list either
+   (CLAUDE.md is auto-loaded and TASKS.md is authoritative), which cut it from
+   6634 to ~3500 bytes of prompt paid for on every single iteration.
+3. Iterations really take 80-115 minutes; the last run's 45-minute timeout
+   killed every one of them, so the loop stalled out at zero progress. The hard
+   timeout is now 9000s, plus an idle watchdog that kills an iteration which
+   has produced no output at all for 25 minutes.
+4. CMakeLists.txt now globs Source/*.cpp and Tests/*.cpp, so the agent never
+   needs to edit it - it broke the build twice before by editing it.
+   New tests go in NEW files, Tests/Test<Component>.cpp.
+5. Every commit is verified by the driver: it runs ./scripts/test.sh right
+   after the agent commits, and rolls the commit back if it does not exit 0,
+   recording why here. Fabricated work no longer survives.
+6. Failure no longer ends the night. Recovery ladder: retry -> unload and retry
+   -> reduced-context fallback model -> restart Ollama. Three failed attempts
+   at one task mark it [BLOCKED] and the loop moves to the next task.
+7. Removed stale junk: memory/*bootstrap-complete*, .claude/*bootstrap-complete*,
+   Source/dsp/EnvelopeFollower.cpp (violated the header-only rule and was never
+   compiled), a stray SimpleEnvelopeFollowerTest binary and .DS_Store files.
+
+T-01 stays ticked: the repo, CMake and scripts are real and the runner now
+genuinely builds. Next run starts at T-02, EnvelopeFollower from scratch, and
+must add Tests/TestEnvelopeFollower.cpp - including a test for "longer attack
+reaches peak later", which the discarded earlier attempt never had.

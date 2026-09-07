@@ -25,9 +25,13 @@ juce_add_plugin(MotionEngine
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD     TRUE)
 
-target_sources(MotionEngine PRIVATE
-    Source/PluginProcessor.cpp
-    Source/PluginEditor.cpp)
+# Every .cpp directly under Source/ is part of the plugin. Globbed on purpose:
+# the agent adds source files without ever needing to edit this file.
+# Source/dsp/ is HEADER ONLY and is deliberately not globbed.
+file(GLOB MOTIONENGINE_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Source/*.cpp")
+
+target_sources(MotionEngine PRIVATE ${MOTIONENGINE_SOURCES})
 
 target_include_directories(MotionEngine PRIVATE Source)
 
@@ -53,14 +57,19 @@ juce_generate_juce_header(MotionEngine)
 # ---------------------------------------------------------------- tests
 #
 # The DSP components under Source/dsp/ are HEADER ONLY. Do not add .cpp
-# files here; if a new DSP header appears it is picked up via the include
-# directory below with no CMake change required.
+# files there; a new DSP header is picked up via the include directory below
+# with no CMake change required.
 
 juce_add_console_app(MotionEngineTests
     PRODUCT_NAME "MotionEngineTests")
 
-target_sources(MotionEngineTests PRIVATE
-    Tests/TestMain.cpp)
+# Every .cpp under Tests/ is compiled into the test runner. Tests/TestMain.cpp
+# holds main(); new tests go in NEW files (Tests/TestEnvelopeFollower.cpp etc.)
+# and are picked up here automatically - no CMake edit required, ever.
+file(GLOB MOTIONENGINE_TEST_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/*.cpp")
+
+target_sources(MotionEngineTests PRIVATE ${MOTIONENGINE_TEST_SOURCES})
 
 target_include_directories(MotionEngineTests PRIVATE Source)
 

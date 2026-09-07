@@ -1,50 +1,79 @@
 #!/usr/bin/env bash
-# Start the MotionEngine driver in the background, keep the Mac awake,
-# and detach so you can close the terminal / go to bed.
+# =============================================================================
+# Start the MotionEngine overnight run.  HARNESS FILE - DO NOT EDIT.
 #
-#   ./start.sh          # up to 60 iterations
-#   ./start.sh 100      # up to 100 iterations
-
-set -euo pipefail
+#   ./start.sh              up to 60 iterations, 10h wall clock
+#   ./start.sh 100          up to 100 iterations
+#   MAX_HOURS=8 ./start.sh  stop after 8 hours instead of 10
+#
+# Runs preflight while you are still watching, then detaches, keeps the Mac
+# awake, and runs unattended. Stop it in the morning with ./stop.sh
+# =============================================================================
+set -uo pipefail
 cd "$(dirname "$0")"
 
 ITERS="${1:-60}"
 
 if [ -f .driver.pgid ] && kill -0 "-$(cat .driver.pgid)" 2>/dev/null; then
-  echo "Driver already running (pgid $(cat .driver.pgid)). Use ./stop.sh first."
+  echo "A driver is already running (pgid $(cat .driver.pgid)). Run ./stop.sh first."
   exit 1
 fi
+rm -f .driver.pgid .driver.pid
 
-# Fail fast before detaching, so problems are visible while you are still here.
-echo "Running preflight..."
-if ! ./drive.sh --check; then
+mkdir -p logs
+
+# Fail loudly now, while you are still at the keyboard, rather than at 3am.
+echo "Running preflight (build, tests and one model round trip - a few minutes)..."
+echo
+if ! ./drive.sh --check 2>&1 | tee logs/preflight.log; then
   echo
-  echo "Preflight FAILED. Not starting. Fix the BAD lines above."
+  echo "-------------------------------------------------------------------"
+  echo "Preflight FAILED. Nothing was started."
+  echo "Fix the BAD lines above, then run ./start.sh again."
+  echo "Full output: logs/preflight.log"
+  echo "-------------------------------------------------------------------"
   exit 1
 fi
 
-# rotate logs
-[ -f run.log ] && mv run.log "run.$(date '+%Y%m%d-%H%M%S').log"
+[ -f run.log ] && mv run.log "logs/run.$(date '+%Y%m%d-%H%M%S').log"
 rm -f .driver_done
 
-set -m   # give the background job its own process group
+# Own process group, so ./stop.sh can take down the whole tree in one signal.
+set -m
 if command -v caffeinate >/dev/null 2>&1; then
-  nohup caffeinate -is ./drive.sh "$ITERS" > run.log 2>&1 &
+  nohup caffeinate -i -m -s ./drive.sh --no-preflight "$ITERS" > run.log 2>&1 &
 else
-  nohup ./drive.sh "$ITERS" > run.log 2>&1 &
+  nohup ./drive.sh --no-preflight "$ITERS" > run.log 2>&1 &
 fi
 PGID=$!
 set +m
 
 echo "$PGID" > .driver.pgid
-sleep 1
+sleep 2
 
-echo
-echo "Driver started."
-echo "  process group : $PGID"
-echo "  max iterations: $ITERS"
-echo "  log           : $PWD/run.log"
-echo
-echo "  follow live   : tail -f run.log"
-echo "  check status  : ./status.sh"
-echo "  stop          : ./stop.sh"
+if ! kill -0 "-$PGID" 2>/dev/null; then
+  echo "The driver exited immediately. Last lines of run.log:"
+  tail -20 run.log
+  rm -f .driver.pgid
+  exit 1
+fi
+
+cat <<INFO
+
+===================================================================
+ MotionEngine is running.
+===================================================================
+   process group : $PGID
+   max iterations: $ITERS
+   wall clock    : ${MAX_HOURS:-10}h, then it stops and frees memory
+   log           : $PWD/run.log
+   per iteration : $PWD/logs/iter-NNN.log
+
+   follow live   : tail -f run.log
+   in the morning: ./status.sh     then     ./stop.sh
+
+ The Mac will not sleep while this runs. Leave the lid OPEN - macOS
+ sleeps on lid close regardless of caffeinate unless an external
+ display is attached.
+===================================================================
+INFO

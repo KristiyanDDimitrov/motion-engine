@@ -7,6 +7,7 @@ build*/
 # driver runtime state
 run.log
 run.*.log
+logs/
 .driver.pgid
 .driver.pid
 .driver_done
