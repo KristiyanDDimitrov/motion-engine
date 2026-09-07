@@ -18,7 +18,8 @@
 #
 # Env overrides:
 #   ITER_TIMEOUT   hard seconds per iteration      (default 9000 = 2h30)
-#   IDLE_TIMEOUT   seconds of no output -> kill    (default 1500 = 25 min)
+#   IDLE_TIMEOUT   seconds of no output -> kill    (default 2400 = 40 min;
+#                  must exceed the longest silent tool call, i.e. a full rebuild)
 #   MAX_HOURS      wall-clock limit for the run    (default 10, 0 = unlimited)
 #   MAX_TASK_FAILS attempts before a task is BLOCKED (default 3)
 #   MAX_CONSEC_FAIL hard abort after N failures    (default 8)
@@ -49,7 +50,7 @@ done
 MAX_ITER="${MAX_ITER:-60}"
 
 ITER_TIMEOUT="${ITER_TIMEOUT:-9000}"
-IDLE_TIMEOUT="${IDLE_TIMEOUT:-1500}"
+IDLE_TIMEOUT="${IDLE_TIMEOUT:-2400}"
 MAX_HOURS="${MAX_HOURS:-10}"
 MAX_TASK_FAILS="${MAX_TASK_FAILS:-3}"
 MAX_CONSEC_FAIL="${MAX_CONSEC_FAIL:-8}"
@@ -264,8 +265,9 @@ scrub_state() {
     log "stripped a completion sentinel the agent wrote into STATE.md"
     grep -viE 'ALL TASKS COMPLETE|PROJECT COMPLETE|ALL DONE' STATE.md > STATE.md.tmp && mv STATE.md.tmp STATE.md
   fi
-  rm -f MEMORY.md NOTES.md README.md.bak
-  rm -rf memory .claude/bootstrap-complete.md .claude/Bootstrap_complete.md
+  rm -f MEMORY.md NOTES.md
+  rm -f memory/[Bb]ootstrap[-_]complete.md .claude/[Bb]ootstrap[-_]complete.md
+  rmdir memory .claude 2>/dev/null
   # Keep STATE.md bounded so it never eats the context window.
   local n
   n="$(wc -l < STATE.md 2>/dev/null | tr -d ' ')"
@@ -280,13 +282,26 @@ scrub_state() {
 
 # ------------------------------------------------------- supervised execution
 
+# Depth-first walk of the descendants of a pid, deepest first.
+descendants() {
+  local kid
+  for kid in $(pgrep -P "$1" 2>/dev/null); do
+    descendants "$kid"
+    echo "$kid"
+  done
+}
+
 kill_group() {
-  local pid="$1" n
+  local pid="$1" n kid
+  # The child is normally its own process group leader (see watched_run), so one
+  # signal takes the whole tree. Walk the descendants too, in case it is not.
+  for kid in $(descendants "$pid"); do kill -TERM "$kid" 2>/dev/null; done
   kill -TERM "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
   for n in 1 2 3 4 5 6 7 8 9 10; do
-    kill -0 "$pid" 2>/dev/null || return 0
+    kill -0 "$pid" 2>/dev/null || break
     sleep 1
   done
+  for kid in $(descendants "$pid"); do kill -KILL "$kid" 2>/dev/null; done
   kill -KILL "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
   return 0
 }
@@ -420,7 +435,8 @@ preflight() {
   else log "  warn  pluginval not found - T-12/T-13 will fail and end up BLOCKED"; fi
 
   rm -f MEMORY.md NOTES.md
-  rm -rf memory .claude/bootstrap-complete.md .claude/Bootstrap_complete.md 2>/dev/null
+  rm -f memory/[Bb]ootstrap[-_]complete.md .claude/[Bb]ootstrap[-_]complete.md 2>/dev/null
+  rmdir memory .claude 2>/dev/null
 
   # The single most important check: the build and the real test binary. If
   # this is broken, every "tests must pass" gate downstream is meaningless.
