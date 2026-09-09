@@ -137,3 +137,25 @@ juce::UnitTest subclass and a static instance of it.
 
 2026-09-09 09:57: DRIVER blocked T-03 after 3 attempts.
 Reason: last exit 0 at recovery level 3. Later tasks that depend on T-03 may also fail; review by hand.
+
+2026-09-09 10:25: DRIVER REJECTED the commit for T-04.
+./scripts/test.sh exited 1 immediately after it, so the commit was rolled
+back. Tail of the failing output:
+    Starting tests in: Wave audio format tests / Writing 32-bit integer samples should work...
+    Completed tests in Wave audio format tests / Writing 32-bit integer samples should work
+    -----------------------------------------------------------------
+    Starting tests in: Wave audio format tests / Writing 32-bit float samples should work...
+    Completed tests in Wave audio format tests / Writing 32-bit float samples should work
+      FAIL [LFO / reset is deterministic] !!! Test 1 failed: Reset should make LFO deterministic
+    
+    ================ MotionEngine test summary ================
+      test classes registered : 141
+      result blocks           : 1033
+      assertions passed       : 12465854
+      assertions failed       : 1
+      RESULT                  : FAILED
+    ===========================================================
+    scripts/test.sh: FAIL - assertions failed
+Next run: ./scripts/test.sh must exit 0 before you commit. Exit 2 means the
+suite registered no real tests - add Tests/Test<Component>.cpp with a
+juce::UnitTest subclass and a static instance of it.
