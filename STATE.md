@@ -206,3 +206,34 @@ back. Tail of the failing output:
 Next run: ./scripts/test.sh must exit 0 before you commit. Exit 2 means the
 suite registered no real tests - add Tests/Test<Component>.cpp with a
 juce::UnitTest subclass and a static instance of it.
+
+2026-09-09: DRIVER CORRECTION (manual, not an agent run). The 2026-09-09 night
+ran 10 iterations and landed T-02 and T-04; T-03 was blocked after 3 genuine
+failures. The machine then wedged on display wake from memory exhaustion (18GB
+model on 24GB, 4.5-13.6GB swap all night) - see HARNESS.md. Harness fixes for
+that are committed separately.
+
+One thing had to be fixed by hand because it would have poisoned the next run:
+`Tests/TestLFO.cpp` "depth affects amplitude" was failing, and a failing test
+blocks EVERY subsequent commit (the driver verifies with ./scripts/test.sh
+after each one), so every remaining task would have been BLOCKED in turn. The
+test read two SUCCESSIVE samples at two different depths and compared them,
+which does not test depth at all - and near phase 0, sin(2x)*0.5 == sin(x) to
+float precision, so both reads were bit-identical (0.000142475852). Rewritten
+to measure peak amplitude over a full cycle at each depth. Two other tests that
+compared floats with != were given tolerances.
+
+KNOWN GAPS in the LFO, left for the tasks that own them - do not treat T-04 as
+proof these work:
+- `LFO::process()` hardcodes 44100 (LFO.h line 32). There is no setSampleRate()
+  or prepare(). T-11 (44.1/48/96 kHz) cannot pass until this exists, and the
+  T-04 test named "measured period matches requested rate at 44.1k and 48k"
+  does not actually measure a period at either rate - it only checks the output
+  is inside [-1,1].
+- `setTempoSyncedRate()` computes `1 / (division * secondsPerBeat)`, which gives
+  0.5 Hz for a 1/4 note at 120 BPM where the correct answer is 2 Hz. T-05 must
+  assert real Hz values, not just that isTempoSynced() returns true.
+- `sampleAndHold` calls rand() afresh every sample, so it neither holds a value
+  nor is deterministic after reset(). The spec requires both.
+- `LFO.h` uses `juce::MathConstants` but includes only <cmath>. It compiles only
+  because JuceHeader.h happens to be included first by the test file.

@@ -50,8 +50,12 @@ struct LFOTests final : public juce::UnitTest
             for (int i = 0; i < 5; ++i)
                 output2 = lfo.process();
 
-            // The outputs should be different due to phase offset
-            expect (output1 != output2, "Phase offset should shift the output");
+            // A quarter-cycle offset on a sine near phase 0 moves the output
+            // from ~0 to ~1, so require a real difference rather than testing
+            // two floats for inequality.
+            const float difference = output1 > output2 ? output1 - output2
+                                                       : output2 - output1;
+            expect (difference > 0.1f, "Phase offset should shift the output");
         }
 
         beginTest ("reset is deterministic");
@@ -91,25 +95,46 @@ struct LFOTests final : public juce::UnitTest
             lfo.setShape(MotionEngineDSP::LFOShape::square);
             float squareOutput = lfo.process();
 
-            expect (sineOutput != squareOutput, "Different shapes should produce different outputs");
+            const float difference = sineOutput > squareOutput ? sineOutput - squareOutput
+                                                                : squareOutput - sineOutput;
+            expect (difference > 0.1f, "Different shapes should produce different outputs");
         }
 
         beginTest ("depth affects amplitude");
         {
-            MotionEngineDSP::LFO lfo;
-            lfo.setRate(1.0f);
-            lfo.setShape(MotionEngineDSP::LFOShape::sine);
+            // Measure the PEAK over a full cycle at each depth. The previous
+            // version of this test read two successive samples at two depths
+            // and compared them, which is not a test of depth at all - and it
+            // failed on a coincidence: near phase 0, sin(2x) * 0.5 == sin(x)
+            // to float precision, so the two readings came out identical.
+            auto peakOverOneCycle = [] (float depth)
+            {
+                MotionEngineDSP::LFO lfo;
+                lfo.setRate (1.0f);
+                lfo.setShape (MotionEngineDSP::LFOShape::sine);
+                lfo.setDepth (depth);
+                lfo.reset();
 
-            // Test with depth 1.0
-            lfo.setDepth(1.0f);
-            float output1 = lfo.process();
+                float peak = 0.0f;
 
-            // Test with depth 0.5
-            lfo.setDepth(0.5f);
-            float output2 = lfo.process();
+                for (int i = 0; i < 44100; ++i)   // one full cycle at 1 Hz
+                {
+                    const float v = lfo.process();
+                    const float magnitude = v < 0.0f ? -v : v;
 
-            // The outputs should be different (but both within [-1,1])
-            expect (output1 != output2, "Depth should affect amplitude");
+                    if (magnitude > peak)
+                        peak = magnitude;
+                }
+
+                return peak;
+            };
+
+            const float fullPeak = peakOverOneCycle (1.0f);
+            const float halfPeak = peakOverOneCycle (0.5f);
+
+            expect (fullPeak > 0.9f, "sine at depth 1.0 should reach near full scale");
+            expectWithinAbsoluteError (halfPeak, fullPeak * 0.5f, 0.01f,
+                                       "depth 0.5 should halve the peak amplitude");
         }
 
         beginTest ("tempo sync at 90 BPM correct");
