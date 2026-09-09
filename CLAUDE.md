@@ -35,6 +35,18 @@ Build artefacts:
 - The runner exits nonzero if any assertion fails, and also if the only thing
   registered is its own self test — an empty suite is not a pass.
 - Every named behaviour in a task line gets its own `beginTest` block.
+- **Never call `expect()` inside a per-sample loop.** Accumulate the property
+  across the loop — a min, a max, a count, a flag — and make ONE assertion
+  about it afterwards. The runner fails outright above 500,000 assertions.
+
+  ```cpp
+  bool everNegative = false;
+  for (int i = 0; i < numSamples; ++i)
+      everNegative |= (follower.process (input[i]) < 0.0f);
+
+  beginTest ("output is never negative");
+  expect (! everNegative, "envelope went negative");
+  ```
 
 ## Hard constraints
 

@@ -86,6 +86,23 @@ int main (int, char**)
               << "  assertions passed       : " << passes << "\n"
               << "  assertions failed       : " << failures << std::endl;
 
+    // A sane DSP suite makes thousands of assertions, not millions. Calling
+    // expect() once per audio sample makes every verification crawl and buries
+    // the real failure in noise, so it is treated as a broken test, not a pass.
+    const int assertionBudget = 500000;
+
+    if (passes + failures > assertionBudget)
+    {
+        std::cout << "  RESULT                  : TOO MANY ASSERTIONS\n"
+                  << "  " << (passes + failures) << " assertions exceeds the budget of "
+                  << assertionBudget << ".\n"
+                  << "  Do not call expect() inside a per-sample loop. Accumulate the\n"
+                  << "  property being tested (a min, a max, a count, a flag) across the\n"
+                  << "  loop and make ONE assertion about it afterwards.\n"
+                  << "===========================================================" << std::endl;
+        return 1;
+    }
+
     if (failures > 0)
     {
         std::cout << "  RESULT                  : FAILED\n"

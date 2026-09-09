@@ -55,6 +55,13 @@ MAX_HOURS="${MAX_HOURS:-10}"
 MAX_TASK_FAILS="${MAX_TASK_FAILS:-3}"
 MAX_CONSEC_FAIL="${MAX_CONSEC_FAIL:-8}"
 MIN_FREE_MB="${MIN_FREE_MB:-3000}"
+# Swap, not free memory, is the signal that an iteration is drowning. With an
+# 18GB model resident on a 24GB machine, "little free memory" is the normal
+# operating state; sustained multi-GB swap is not. On the 2026-09-09 run the
+# iterations that completed sat around 4-5GB of swap, and the one that hit the
+# hard timeout was at 13.6GB.
+MAX_SWAP_MB="${MAX_SWAP_MB:-8000}"
+SWAP_STRIKES="${SWAP_STRIKES:-3}"
 COOLDOWN="${COOLDOWN:-10}"
 FALLBACK_CTX="${FALLBACK_CTX:-32768}"
 FALLBACK_CC_TOKENS="${FALLBACK_CC_TOKENS:-30000}"
@@ -64,6 +71,7 @@ OLLAMA_URL="${OLLAMA_URL:-http://localhost:11434}"
 RUNDIR="logs"
 mkdir -p "$RUNDIR"
 TASKFAILS="$RUNDIR/.taskfails"
+MEMLOG="$RUNDIR/memory.csv"
 touch "$TASKFAILS"
 
 START_TS="$(date +%s)"
@@ -315,6 +323,11 @@ kill_group() {
 # the driver's group does not reach it.
 CURRENT_CHILD=""
 
+# Set to 1 around a real iteration so the watchdog also enforces the swap
+# ceiling; left 0 for short calls like the preflight smoke test.
+MEM_BREAKER=0
+ITER_LABEL="-"
+
 watched_run() {
   local budget="$1" idle="$2" lgf="$3"; shift 3
   : > "$lgf"
@@ -328,11 +341,30 @@ watched_run() {
   local pid=$! start now sz last_sz last_change rc
   CURRENT_CHILD="$pid"
   start="$(date +%s)"; last_sz=-1; last_change="$start"
+  local polls=0 strikes=0 fmb smb
+  [ -f "$MEMLOG" ] || echo "timestamp,iteration,free_mb,swap_mb" > "$MEMLOG"
   while kill -0 "$pid" 2>/dev/null; do
     # Interruptible sleep: a plain `sleep 10` would make bash defer the TERM
     # trap for up to ten seconds, so ./stop.sh would appear to hang.
     sleep 10 & wait $! 2>/dev/null
     now="$(date +%s)"
+
+    # Sample memory once a minute: cheap, and it gives a trace to read in the
+    # morning instead of two numbers per iteration.
+    polls=$((polls + 1))
+    if [ $((polls % 6)) -eq 0 ]; then
+      fmb="$(free_mb)"; smb="$(swap_used_mb)"; smb="${smb:-0}"
+      printf '%s,%s,%s,%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$ITER_LABEL" "$fmb" "$smb" >> "$MEMLOG"
+      if [ "$MEM_BREAKER" = "1" ] && [ "$smb" -gt "$MAX_SWAP_MB" ]; then
+        strikes=$((strikes + 1))
+        log "  memory: ${fmb}MB free, ${smb}MB swap - over the ${MAX_SWAP_MB}MB ceiling ($strikes/$SWAP_STRIKES)"
+        if [ "$strikes" -ge "$SWAP_STRIKES" ]; then
+          kill_group "$pid"; wait "$pid" 2>/dev/null; CURRENT_CHILD=""; return 126
+        fi
+      else
+        strikes=0
+      fi
+    fi
     sz="$(wc -c < "$lgf" 2>/dev/null | tr -d ' ')"; sz="${sz:-0}"
     if [ "$sz" != "$last_sz" ]; then last_sz="$sz"; last_change="$now"; fi
     if [ "$budget" -gt 0 ] && [ $((now - start)) -ge "$budget" ]; then
@@ -676,6 +708,7 @@ line ranges, never whole headers, and keep this run to the single current task."
 ---$note"
 
   lgf="$RUNDIR/iter-$(printf '%03d' "$i").log"
+  MEM_BREAKER=1; ITER_LABEL="$i:$task"
   watched_run "$budget" "$IDLE_TIMEOUT" "$lgf" \
     env ANTHROPIC_MODEL="$m" \
         ANTHROPIC_DEFAULT_HAIKU_MODEL="$m" \
@@ -686,6 +719,7 @@ line ranges, never whole headers, and keep this run to the single current task."
         CLAUDE_CODE_MAX_CONTEXT_TOKENS="$ctx" \
         claude --model "$m" --dangerously-skip-permissions $STREAM_ARGS --print "$ptext"
   rc=$?
+  MEM_BREAKER=0
   digest "$lgf"
 
   new_sha="$(head_sha)"
@@ -714,6 +748,9 @@ line ranges, never whole headers, and keep this run to the single current task."
     case "$rc" in
       124) log "iteration $i hit the ${budget}s hard timeout"; LEVEL=$((LEVEL + 2)) ;;
       125) log "iteration $i went silent for ${IDLE_TIMEOUT}s and was killed"; LEVEL=$((LEVEL + 2)) ;;
+      126) log "iteration $i was killed: swap stayed above ${MAX_SWAP_MB}MB, the machine was thrashing"
+           log "         this is the failure mode that wedged the Mac on 2026-09-09 - not letting it run on"
+           LEVEL=$((LEVEL + 2)) ;;
       0)   log "iteration $i exited cleanly but produced nothing that survived"; LEVEL=$((LEVEL + 1)) ;;
       *)   log "iteration $i exited $rc"; LEVEL=$((LEVEL + 1)) ;;
     esac

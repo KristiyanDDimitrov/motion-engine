@@ -73,8 +73,14 @@ target_sources(MotionEngineTests PRIVATE ${MOTIONENGINE_TEST_SOURCES})
 
 target_include_directories(MotionEngineTests PRIVATE Source)
 
+# NOTE: JUCE_UNIT_TESTS is deliberately NOT defined. juce::UnitTest and
+# UnitTestRunner are always available (juce_core.h includes juce_UnitTest.h
+# unconditionally); the flag only compiles in JUCE's OWN internal test suites.
+# With it on, every run of ./scripts/test.sh executed ~12.4 million assertions
+# of JUCE's internal tests - ProcessorChain, Wave format round trips, and an
+# audio-reader fuzzer that writes temp files - costing minutes of CPU and a
+# lot of allocation per verification, on a machine that has none to spare.
 target_compile_definitions(MotionEngineTests PUBLIC
-    JUCE_UNIT_TESTS=1
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_STANDALONE_APPLICATION=1)

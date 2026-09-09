@@ -120,33 +120,31 @@ public:
         return output;
     }
 
-    void setRate(float rateHz)
+    void setRate(float rate)
     {
-        this->rateHz = rateHz;
+        this->rateHz = rate;
         tempoSynced = false;
     }
 
-    void setShape(LFOShape shape)
+    void setShape(LFOShape newShape)
     {
-        this->shape = shape;
+        this->shape = newShape;
     }
 
-    void setPhaseOffset(float phaseOffset)
+    void setPhaseOffset(float offset)
     {
-        this->phaseOffset = phaseOffset;
+        this->phaseOffset = offset;
     }
 
-    void setDepth(float depth)
+    void setDepth(float newDepth)
     {
-        this->depth = depth;
+        this->depth = newDepth;
     }
 
     // Tempo-synced rate functions
-    void setTempoSyncedRate(int division) // 1/1 = 1, 1/2 = 2, ..., 1/32 = 32
+    void setTempoSyncedRate(int division, float bpm) // 1/1 = 1, 1/2 = 2, ..., 1/32 = 32
     {
         // Convert tempo-synced division to Hz
-        // Assuming 120 BPM as base for tempo sync (default)
-        const float bpm = 120.0f;
         const float secondsPerBeat = 60.0f / bpm;
 
         // For division 1/1 to 1/32, we calculate the appropriate rate

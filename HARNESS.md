@@ -61,6 +61,43 @@ Also running every iteration: a free-memory guard, a 40-minute idle watchdog, a
 2h30 hard timeout, `STATE.md` trimming, completion-sentinel scrubbing, and
 automatic repair of any harness file the agent edited.
 
+## Memory is the binding constraint
+
+The primary model is 18GB of weights plus a 64k KV cache, on a machine with
+24GB of unified memory. macOS itself wants 4–6GB. There is no room left for
+clang, and the 2026-09-09 run spent all nine hours at 800MB–1GB free with
+4.5–13.6GB of swap. It survived the night and finished three tasks, but the
+machine wedged the moment the display woke up.
+
+What the harness now does about it:
+
+- `scripts/build.sh` **unloads the model before compiling**, so the build gets
+  the whole machine. Ollama reloads it on the next inference call (~90s).
+- Build parallelism is chosen from free memory at build time, not core count.
+- The watchdog samples memory every minute and **kills an iteration whose swap
+  stays above 8GB** for three minutes, rather than letting it drag the machine
+  down. `logs/memory.csv` is the trace to read in the morning.
+- JUCE's own internal unit tests are no longer compiled in. They were adding
+  12.4 million assertions and an audio-reader fuzzer to every verification.
+
+**The real fix is a smaller model.** Nothing above changes the arithmetic: an
+18GB model on 24GB will always run this close to the edge. A 14B-class coder at
+Q4 (~9GB) leaves room for the toolchain. Switch by editing `ANTHROPIC_MODEL` in
+`.env.motionengine` — nothing else needs to change.
+
+## Sleep and displays
+
+**Leave the lid open**, even with an external monitor.
+
+With the lid closed, the external display is the machine's *only* display, so
+switching the monitor off at its own button leaves macOS headless. Waking it
+then forces the whole display stack to page back in at once — and on a machine
+already deep in swap, that is what produced the grey login screen and the
+permanent beach ball.
+
+Lid open, the internal display always exists. The external monitor can sleep or
+be switched off freely, and the wake is cheap. It also vents better.
+
 ## Layout
 
 | File | Role |
