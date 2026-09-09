@@ -88,3 +88,25 @@ T-01 stays ticked: the repo, CMake and scripts are real and the runner now
 genuinely builds. Next run starts at T-02, EnvelopeFollower from scratch, and
 must add Tests/TestEnvelopeFollower.cpp - including a test for "longer attack
 reaches peak later", which the discarded earlier attempt never had.
+
+2026-09-09 04:04: DRIVER REJECTED the commit for T-03.
+./scripts/test.sh exited 1 immediately after it, so the commit was rolled
+back. Tail of the failing output:
+    Starting tests in: Wave audio format tests / Writing 32-bit float samples should work...
+    Completed tests in Wave audio format tests / Writing 32-bit float samples should work
+      FAIL [TransientDetector / exactly one trigger per burst onset] !!! Test 2 failed: trigger on burst onset
+      FAIL [TransientDetector / respects refractory period] !!! Test 1 failed: first trigger should occur
+      FAIL [TransientDetector / respects refractory period] !!! Test 3 failed: should trigger after refractory period ends
+      FAIL [TransientDetector / threshold affects triggering] !!! Test 2 failed: should trigger with input above threshold
+    
+    ================ MotionEngine test summary ================
+      test classes registered : 141
+      result blocks           : 1033
+      assertions passed       : 12463373
+      assertions failed       : 4
+      RESULT                  : FAILED
+    ===========================================================
+    scripts/test.sh: FAIL - assertions failed
+Next run: ./scripts/test.sh must exit 0 before you commit. Exit 2 means the
+suite registered no real tests - add Tests/Test<Component>.cpp with a
+juce::UnitTest subclass and a static instance of it.
