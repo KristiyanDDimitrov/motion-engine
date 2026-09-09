@@ -134,3 +134,6 @@ back. Tail of the failing output:
 Next run: ./scripts/test.sh must exit 0 before you commit. Exit 2 means the
 suite registered no real tests - add Tests/Test<Component>.cpp with a
 juce::UnitTest subclass and a static instance of it.
+
+2026-09-09 09:57: DRIVER blocked T-03 after 3 attempts.
+Reason: last exit 0 at recovery level 3. Later tasks that depend on T-03 may also fail; review by hand.

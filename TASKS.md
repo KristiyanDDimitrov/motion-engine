@@ -2,7 +2,7 @@
 
 - [x] T-01 Bootstrap repo, CMake, scripts, empty test runner that builds and passes
 - [x] T-02 EnvelopeFollower + tests: rises on burst, decays toward zero, never negative, longer attack reaches peak later
-- [ ] T-03 TransientDetector + tests: exactly one trigger per burst onset, none during sustain, respects refractory period
+- [BLOCKED] T-03 TransientDetector + tests: exactly one trigger per burst onset, none during sustain, respects refractory period
 - [ ] T-04 LFO + tests: measured period matches requested rate at 44.1k and 48k, output within [-1,1], phase offset shifts output, reset is deterministic
 - [ ] T-05 LFO tempo sync + tests: division-to-Hz conversion correct at 90/174/200 BPM
 - [ ] T-06 ModMatrix + tests: contributions sum, results clamp to destination range, depth 0 is a no-op, negative depth inverts
