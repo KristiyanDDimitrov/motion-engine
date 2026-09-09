@@ -162,3 +162,25 @@ juce::UnitTest subclass and a static instance of it.
 
 2026-09-09 10:35: T-04 LFO + tests: measured period matches requested rate at 44.1k and 48k, output within [-1,1], phase offset shifts output, reset is deterministic - SUCCESS.
 Implemented LFO with all required functionality including proper waveform generation for all shapes, tempo-synced rates, phase offset, depth control, and deterministic reset behavior. All unit tests pass.
+
+2026-09-09 11:23: DRIVER REJECTED the commit for T-05.
+./scripts/test.sh exited 1 immediately after it, so the commit was rolled
+back. Tail of the failing output:
+      FAIL [TransientDetector / none during sustain] !!! Test 2 failed: Should not have triggered during sustained period
+      FAIL [TransientDetector / respects refractory period] !!! Test 1 failed: First trigger should occur
+      FAIL [TransientDetector / respects refractory period] !!! Test 101 failed: Should trigger after refractory period ends
+      FAIL [TransientDetector / threshold affects triggering] !!! Test 1 failed: Should trigger with input above threshold
+      FAIL [TransientDetector / reset clears state] !!! Test 1 failed: Should trigger first
+      FAIL [TransientDetector / reset clears state] !!! Test 2 failed: Should trigger after reset
+    
+    ================ MotionEngine test summary ================
+      test classes registered : 142
+      result blocks           : 1040
+      assertions passed       : 12465661
+      assertions failed       : 7
+      RESULT                  : FAILED
+    ===========================================================
+    scripts/test.sh: FAIL - assertions failed
+Next run: ./scripts/test.sh must exit 0 before you commit. Exit 2 means the
+suite registered no real tests - add Tests/Test<Component>.cpp with a
+juce::UnitTest subclass and a static instance of it.
