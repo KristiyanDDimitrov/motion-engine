@@ -452,6 +452,17 @@ preflight() {
   if command -v perl >/dev/null 2>&1; then log "  ok    perl (used to kill runaway process trees)"
   else log "  warn  no perl - a killed iteration may leave child processes behind"; fi
   if git rev-parse --git-dir >/dev/null 2>&1; then log "  ok    git repo"; else log "  BAD   not a git repo"; bad=1; fi
+  # A stale lock left by a crashed git (or by a run the machine died under)
+  # makes every commit fail. Cheap to detect here, ruinous to hit at 3am.
+  if find .git \( -name '*.lock' -o -name 'tmp_obj_*' \) 2>/dev/null | grep -q .; then
+    log "  warn  stale git lock/temp files found - clearing them"
+    find .git \( -name '*.lock' -o -name 'tmp_obj_*' \) -delete 2>/dev/null
+  fi
+  if git rev-parse --verify HEAD >/dev/null 2>&1 && [ -z "$(git status --porcelain 2>&1 | grep -i 'unable to\|fatal')" ]; then
+    log "  ok    git can read the index"
+  else
+    log "  BAD   git index is unhealthy - commits will fail"; bad=1
+  fi
   if git config user.email >/dev/null 2>&1 && git config user.name >/dev/null 2>&1; then
     log "  ok    git identity: $(git config user.name) <$(git config user.email)>"
   else log "  BAD   git user.name / user.email not set -> every commit will fail"; bad=1; fi
