@@ -184,3 +184,25 @@ back. Tail of the failing output:
 Next run: ./scripts/test.sh must exit 0 before you commit. Exit 2 means the
 suite registered no real tests - add Tests/Test<Component>.cpp with a
 juce::UnitTest subclass and a static instance of it.
+
+2026-09-09 12:31: DRIVER REJECTED the commit for T-05.
+./scripts/test.sh exited 1 immediately after it, so the commit was rolled
+back. Tail of the failing output:
+    Starting tests in: Wave audio format tests / Writing 32-bit integer samples should work...
+    Completed tests in Wave audio format tests / Writing 32-bit integer samples should work
+    -----------------------------------------------------------------
+    Starting tests in: Wave audio format tests / Writing 32-bit float samples should work...
+    Completed tests in Wave audio format tests / Writing 32-bit float samples should work
+      FAIL [LFO / depth affects amplitude] !!! Test 1 failed: Depth should affect amplitude
+    
+    ================ MotionEngine test summary ================
+      test classes registered : 141
+      result blocks           : 1035
+      assertions passed       : 12467265
+      assertions failed       : 1
+      RESULT                  : FAILED
+    ===========================================================
+    scripts/test.sh: FAIL - assertions failed
+Next run: ./scripts/test.sh must exit 0 before you commit. Exit 2 means the
+suite registered no real tests - add Tests/Test<Component>.cpp with a
+juce::UnitTest subclass and a static instance of it.
