@@ -112,3 +112,25 @@ juce::UnitTest subclass and a static instance of it.
 
 2026-09-09: T-02 EnvelopeFollower + tests: rises on burst, decays toward zero, never negative, longer attack reaches peak later - SUCCESS.
 Implemented EnvelopeFollower with proper attack/release smoothing, sensitivity parameter usage, and comprehensive unit tests. All requirements from the spec are met.
+
+2026-09-09 08:59: DRIVER REJECTED the commit for T-03.
+./scripts/test.sh exited 1 immediately after it, so the commit was rolled
+back. Tail of the failing output:
+      FAIL [TransientDetector / none during sustain] !!! Test 2 failed: should not trigger during sustain period
+      FAIL [TransientDetector / respects refractory period] !!! Test 1 failed: first trigger should occur
+      FAIL [TransientDetector / respects refractory period] !!! Test 442 failed: should trigger after refractory period ends
+      FAIL [TransientDetector / threshold affects triggering] !!! Test 2 failed: should trigger with input above threshold
+      FAIL [TransientDetector / reset clears state] !!! Test 1 failed: should trigger
+      FAIL [TransientDetector / reset clears state] !!! Test 2 failed: should trigger after reset
+    
+    ================ MotionEngine test summary ================
+      test classes registered : 141
+      result blocks           : 1034
+      assertions passed       : 12465773
+      assertions failed       : 7
+      RESULT                  : FAILED
+    ===========================================================
+    scripts/test.sh: FAIL - assertions failed
+Next run: ./scripts/test.sh must exit 0 before you commit. Exit 2 means the
+suite registered no real tests - add Tests/Test<Component>.cpp with a
+juce::UnitTest subclass and a static instance of it.
