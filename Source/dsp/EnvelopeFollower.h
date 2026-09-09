@@ -34,7 +34,8 @@ public:
             envelope = envelope + alphaRelease * (rectified - envelope);
         }
 
-        return envelope;
+        // Apply sensitivity - this multiplies the output by sensitivity level
+        return envelope * sensitivity;
     }
 
     void setAttack(float newAttackMs)
@@ -55,7 +56,7 @@ public:
 private:
     float attackMs = 10.0f;
     float releaseMs = 50.0f;
-    float sensitivity = 0.5f;
+    float sensitivity = 1.0f;
     float envelope = 0.0f;
 };
 

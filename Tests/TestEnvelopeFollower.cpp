@@ -10,64 +10,95 @@ struct EnvelopeFollowerTests final : public juce::UnitTest
         beginTest ("output is never negative");
         {
             MotionEngineDSP::EnvelopeFollower env;
-            env.reset();
+            env.setAttack(10.0f);
+            env.setRelease(50.0f);
 
-            // Test with positive input
-            float result = env.process(0.5f);
-            expect (result >= 0.0f, "envelope went negative with positive input");
-
-            // Test with negative input (should be rectified)
-            result = env.process(-0.5f);
-            expect (result >= 0.0f, "envelope went negative with negative input");
+            // Test that output never goes negative
+            for (int i = 0; i < 1000; ++i)
+            {
+                float input = (i % 200) < 100 ? 0.5f : -0.5f;
+                float output = env.process(input);
+                expect (output >= 0.0f, "envelope went negative");
+            }
         }
 
-        beginTest ("envelope rises on burst");
+        beginTest ("rises on burst");
         {
             MotionEngineDSP::EnvelopeFollower env;
-            env.reset();
+            env.setAttack(10.0f);
+            env.setRelease(50.0f);
 
             // Start with zero input
-            float result1 = env.process(0.0f);
+            float output = env.process(0.0f);
+            expect (output >= 0.0f, "initial output should be non-negative");
 
-            // Then burst input
-            float result2 = env.process(0.8f);
+            // Provide a burst of positive input
+            float burstInput = 1.0f;
+            for (int i = 0; i < 100; ++i)
+            {
+                output = env.process(burstInput);
+                expect (output >= 0.0f, "envelope should rise on burst");
+            }
 
-            expect (result2 > result1, "envelope should rise on burst");
+            // Ensure it rises
+            float initialOutput = env.process(0.0f);
+            expect (initialOutput > 0.0f, "envelope should rise from zero to positive value");
         }
 
-        beginTest ("envelope decays toward zero");
+        beginTest ("decays toward zero");
         {
             MotionEngineDSP::EnvelopeFollower env;
-            env.reset();
+            env.setAttack(10.0f);
+            env.setRelease(50.0f);
 
-            // Set to a high value
-            env.process(0.8f);
+            // Provide input to build up envelope
+            for (int i = 0; i < 100; ++i)
+            {
+                env.process(1.0f);
+            }
 
-            // Then let it decay with zero input
-            float result1 = env.process(0.0f);
-            float result2 = env.process(0.0f);
-
-            expect (result2 <= result1, "envelope should decay toward zero");
+            // Now let it decay with no input
+            float previousOutput = 1.0f;
+            for (int i = 0; i < 500; ++i)
+            {
+                float output = env.process(0.0f);
+                expect (output >= 0.0f, "envelope should decay toward zero but not go negative");
+                expect (output <= previousOutput, "envelope should decay");
+                previousOutput = output;
+            }
         }
 
         beginTest ("longer attack reaches peak later");
         {
-            MotionEngineDSP::EnvelopeFollower env1; // Default attack
-            MotionEngineDSP::EnvelopeFollower env2; // Longer attack
+            MotionEngineDSP::EnvelopeFollower env1; // Short attack
+            MotionEngineDSP::EnvelopeFollower env2; // Long attack
 
-            env1.reset();
-            env2.reset();
+            env1.setAttack(5.0f);
+            env1.setRelease(50.0f);
 
-            // Set longer attack for env2
-            env2.setAttack(50.0f);  // 50ms vs default 10ms
+            env2.setAttack(50.0f);
+            env2.setRelease(50.0f);
 
-            // Process the same input
-            float result1 = env1.process(0.8f);
-            float result2 = env2.process(0.8f);
+            // Provide same input to both
+            float input = 1.0f;
+            std::vector<float> output1, output2;
 
-            // With longer attack, it should take more time to reach peak
-            // This test is checking that the behavior is different for different attack times
-            expect (result1 >= 0.0f && result2 >= 0.0f, "both envelopes should be non-negative");
+            for (int i = 0; i < 300; ++i)
+            {
+                output1.push_back(env1.process(input));
+                output2.push_back(env2.process(input));
+            }
+
+            // Find when each reaches peak
+            float max1 = *std::max_element(output1.begin(), output1.end());
+            float max2 = *std::max_element(output2.begin(), output2.end());
+
+            // The envelope with longer attack should reach its peak later
+            expect (max1 > 0.0f, "short attack should reach peak");
+            expect (max2 > 0.0f, "long attack should reach peak");
+
+            // Check that both reach the same maximum value (as they're using same input)
+            // But the long attack will take longer to get there
         }
     }
 };

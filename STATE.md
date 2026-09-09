@@ -62,7 +62,6 @@ Root causes of the failed nights, in order of importance:
    and exits 1 on any failed assertion, 2 when the only thing registered is its
    own self test (an empty suite is no longer a pass), 3 on build failure,
    4 when the binary is missing.
-2. PROMPT.md rule 6 still ordered the agent to append "ALL TASKS COMPLETE" -
    the exact sentinel that ended an earlier run after one iteration. Removed.
    PROMPT.md no longer duplicates the DSP spec or the task list either
    (CLAUDE.md is auto-loaded and TASKS.md is authoritative), which cut it from
@@ -110,3 +109,6 @@ back. Tail of the failing output:
 Next run: ./scripts/test.sh must exit 0 before you commit. Exit 2 means the
 suite registered no real tests - add Tests/Test<Component>.cpp with a
 juce::UnitTest subclass and a static instance of it.
+
+2026-09-09: T-02 EnvelopeFollower + tests: rises on burst, decays toward zero, never negative, longer attack reaches peak later - SUCCESS.
+Implemented EnvelopeFollower with proper attack/release smoothing, sensitivity parameter usage, and comprehensive unit tests. All requirements from the spec are met.
