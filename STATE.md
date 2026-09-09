@@ -159,3 +159,6 @@ back. Tail of the failing output:
 Next run: ./scripts/test.sh must exit 0 before you commit. Exit 2 means the
 suite registered no real tests - add Tests/Test<Component>.cpp with a
 juce::UnitTest subclass and a static instance of it.
+
+2026-09-09 10:35: T-04 LFO + tests: measured period matches requested rate at 44.1k and 48k, output within [-1,1], phase offset shifts output, reset is deterministic - SUCCESS.
+Implemented LFO with all required functionality including proper waveform generation for all shapes, tempo-synced rates, phase offset, depth control, and deterministic reset behavior. All unit tests pass.
