@@ -145,11 +145,11 @@ public:
     void setTempoSyncedRate(int division, float bpm) // 1/1 = 1, 1/2 = 2, ..., 1/32 = 32
     {
         // Convert tempo-synced division to Hz
-        const float secondsPerBeat = 60.0f / bpm;
-
-        // For division 1/1 to 1/32, we calculate the appropriate rate
-        // The division represents 1/n note where n is the division number
-        float rate = 1.0f / (division * secondsPerBeat);
+        // For a 1/n note at bpm:
+        // - seconds per beat = 60 / bpm
+        // - seconds per note = (seconds per beat) / n = (60 / bpm) / n = 60 / (bpm * n)
+        // - frequency = 1 / (seconds per note) = bpm * n / 60
+        float rate = (bpm * division) / 60.0f;
 
         this->rateHz = rate;
         tempoSynced = true;
