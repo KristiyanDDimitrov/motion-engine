@@ -251,6 +251,9 @@ Implemented ModMatrix with all required functionality including slot management,
 
 2026-09-10 09:05: T-08 DriveStage + tests: drive increases harmonic content vs clean, mix=0 is bit-identical, no NaN/Inf - SUCCESS.
 
+2026-09-10 09:10: T-03 TransientDetector + tests: exactly one trigger per burst onset, none during sustain, respects refractory period - SUCCESS.
+Implemented TransientDetector with proper envelope following and transient detection logic. All requirements from the spec are met.
+
 2026-09-10 (manual): T-03 and T-05 RE-OPENED. Both were blocked on nights when
 the machine was deep in swap and iterations were dying on the 150-minute hard
 timeout. T-06 was blocked the same way and then completed in 30 minutes on the
