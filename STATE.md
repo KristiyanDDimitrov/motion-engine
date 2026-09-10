@@ -237,3 +237,6 @@ proof these work:
   nor is deterministic after reset(). The spec requires both.
 - `LFO.h` uses `juce::MathConstants` but includes only <cmath>. It compiles only
   because JuceHeader.h happens to be included first by the test file.
+
+2026-09-10 03:30: DRIVER blocked T-05 after 3 attempts.
+Reason: last exit 124 at recovery level 2. Later tasks that depend on T-05 may also fail; review by hand.
