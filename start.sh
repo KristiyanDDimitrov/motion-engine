@@ -2,9 +2,9 @@
 # =============================================================================
 # Start the MotionEngine overnight run.  HARNESS FILE - DO NOT EDIT.
 #
-#   ./start.sh              up to 60 iterations, 10h wall clock
+#   ./start.sh              up to 60 iterations, 24h wall clock
 #   ./start.sh 100          up to 100 iterations
-#   MAX_HOURS=8 ./start.sh  stop after 8 hours instead of 10
+#   MAX_HOURS=8 ./start.sh  stop after 8 hours instead of 24
 #
 # Runs preflight while you are still watching, then detaches, keeps the Mac
 # awake, and runs unattended. Stop it in the morning with ./stop.sh
@@ -65,7 +65,7 @@ cat <<INFO
 ===================================================================
    process group : $PGID
    max iterations: $ITERS
-   wall clock    : ${MAX_HOURS:-10}h, then it stops and frees memory
+   wall clock    : ${MAX_HOURS:-24}h, then it stops and frees memory
    log           : $PWD/run.log
    per iteration : $PWD/logs/iter-NNN.log
 

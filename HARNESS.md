@@ -20,7 +20,7 @@ unless an external display is attached.
 
 ```bash
 ./start.sh 100              # iteration cap (default 60)
-MAX_HOURS=8 ./start.sh      # wall clock (default 10h, 0 = unlimited)
+MAX_HOURS=8 ./start.sh      # wall clock (default 24h, 0 = unlimited)
 ./stop.sh --quit-ollama     # also quit the Ollama server, not just the model
 ./drive.sh --check          # preflight only, change nothing
 ./doctor.sh > logs/doctor.txt 2>&1   # full environment dump when something is off
@@ -58,8 +58,15 @@ the usual cause. After three failed attempts at one task the driver marks it
 `[BLOCKED]`, records why, and moves on to the next task.
 
 Also running every iteration: a free-memory guard, a 40-minute idle watchdog, a
-2h30 hard timeout, `STATE.md` trimming, completion-sentinel scrubbing, and
+2-hour hard timeout, `STATE.md` trimming, completion-sentinel scrubbing, and
 automatic repair of any harness file the agent edited.
+
+The idle watchdog only works when the local endpoint streams its output, so
+preflight probes for that explicitly and says which mode it picked. Watch for
+`idle watchdog ACTIVE` in the preflight output — with it disabled, a stuck
+iteration costs the full 2-hour timeout instead of 40 minutes. The probe runs
+*after* the model is warm, because a cold load used to make it time out and
+silently fall back.
 
 ## Memory is the binding constraint
 
@@ -77,6 +84,14 @@ What the harness now does about it:
 - The watchdog samples memory every minute and **kills an iteration whose swap
   stays above 8GB** for three minutes, rather than letting it drag the machine
   down. `logs/memory.csv` is the trace to read in the morning.
+
+  Result on 2026-09-10, with the build isolation in place: swap averaged
+  4.7GB and peaked at 6.25GB, against 13.6GB the night before. The ceiling was
+  never hit. Free memory still averaged only 1.1GB with a floor of 413MB, so
+  the machine is out of danger but not out of swap. Note that the free-memory
+  figures printed in `run.log` between iterations look healthy (~20GB) because
+  they are sampled just after the model is unloaded — `logs/memory.csv` is the
+  honest picture.
 - JUCE's own internal unit tests are no longer compiled in. They were adding
   12.4 million assertions and an audio-reader fuzzer to every verification.
 

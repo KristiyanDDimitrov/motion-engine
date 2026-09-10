@@ -250,3 +250,33 @@ Implemented ModMatrix with all required functionality including slot management,
 2026-09-10 08:27: T-07 FilterStage + tests: rising cutoff raises spectral centroid monotonically, no NaN/Inf, stable at max resonance - SUCCESS.
 
 2026-09-10 09:05: T-08 DriveStage + tests: drive increases harmonic content vs clean, mix=0 is bit-identical, no NaN/Inf - SUCCESS.
+
+2026-09-10 (manual): T-03 and T-05 RE-OPENED. Both were blocked on nights when
+the machine was deep in swap and iterations were dying on the 150-minute hard
+timeout. T-06 was blocked the same way and then completed in 30 minutes on the
+very next iteration once conditions improved, so those blocks reflected the
+machine, not the difficulty. Conditions are now materially different: swap
+averaged 4.7GB last night instead of 13.6GB, and the idle watchdog is working
+for the first time. Both tasks get a full three attempts again.
+
+T-03 TransientDetector - what the three failed attempts had in common:
+EVERY failure across all three attempts was a missing trigger, never a spurious
+one. The messages were "should have triggered on the burst", "first trigger
+should occur", "should trigger with input above threshold", "should trigger
+after reset". "none during sustain" passed - because it never fired at all.
+So the detector was silent in every implementation tried so far. Look at the
+gap between the fast and slow envelopes before touching anything else: if both
+use similar smoothing coefficients they track the input almost identically and
+`fast - slow` never gets near the threshold. The declared default threshold is
+0.1, which may simply be larger than the peak difference the envelopes ever
+produce. Measure the actual peak of (fast - slow) for a test burst first, then
+choose the coefficients and threshold from that number rather than guessing.
+`Source/dsp/TransientDetector.h` is currently a bare stub - declarations with
+no bodies - because the failed attempts were rolled back. Everything in
+Source/dsp/ is header-only, so the definitions go inline in the header.
+
+T-05 LFO tempo sync - the root cause is already known and written above:
+`setTempoSyncedRate()` computes `1 / (division * secondsPerBeat)`, which gives
+0.5 Hz for a 1/4 note at 120 BPM where the correct answer is 2 Hz. Assert real
+Hz values at 90/174/200 BPM. Testing that isTempoSynced() returns true is not a
+test of the conversion and will not be accepted as one.

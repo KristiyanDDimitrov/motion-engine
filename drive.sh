@@ -17,10 +17,11 @@
 #   ./drive.sh --no-preflight 60   skip preflight (start.sh already ran it)
 #
 # Env overrides:
-#   ITER_TIMEOUT   hard seconds per iteration      (default 9000 = 2h30)
+#   ITER_TIMEOUT   hard seconds per iteration      (default 7200 = 2h;
+#                  successful iterations have run 15-55 min, so this is ample)
 #   IDLE_TIMEOUT   seconds of no output -> kill    (default 2400 = 40 min;
 #                  must exceed the longest silent tool call, i.e. a full rebuild)
-#   MAX_HOURS      wall-clock limit for the run    (default 10, 0 = unlimited)
+#   MAX_HOURS      wall-clock limit for the run    (default 24, 0 = unlimited)
 #   MAX_TASK_FAILS attempts before a task is BLOCKED (default 3)
 #   MAX_CONSEC_FAIL hard abort after N failures    (default 8)
 #   MIN_FREE_MB    free memory required to start   (default 3000)
@@ -49,9 +50,9 @@ while [ $# -gt 0 ]; do
 done
 MAX_ITER="${MAX_ITER:-60}"
 
-ITER_TIMEOUT="${ITER_TIMEOUT:-9000}"
+ITER_TIMEOUT="${ITER_TIMEOUT:-7200}"
 IDLE_TIMEOUT="${IDLE_TIMEOUT:-2400}"
-MAX_HOURS="${MAX_HOURS:-10}"
+MAX_HOURS="${MAX_HOURS:-24}"
 MAX_TASK_FAILS="${MAX_TASK_FAILS:-3}"
 MAX_CONSEC_FAIL="${MAX_CONSEC_FAIL:-8}"
 MIN_FREE_MB="${MIN_FREE_MB:-3000}"
@@ -228,7 +229,12 @@ block_task() {
   } >> STATE.md
   git add TASKS.md STATE.md >/dev/null 2>&1
   git commit -q -m "harness: block $t after $MAX_TASK_FAILS failed attempts" >/dev/null 2>&1 || true
-  set_task_fails "$t" 0
+  # Deliberately NOT reset to zero. The agent can and does un-block a task by
+  # editing TASKS.md (it did exactly that to T-06 on 2026-09-10, and succeeded).
+  # Leaving the counter at the ceiling means a re-opened task gets one attempt:
+  # if it succeeds the commit stands, and if it fails it is blocked again at
+  # once rather than being handed another three tries.
+  set_task_fails "$t" "$MAX_TASK_FAILS"
 }
 
 # ----------------------------------------------------------- repo hygiene
@@ -505,36 +511,41 @@ preflight() {
     esac
   fi
 
-  # Smoke test the model, and work out whether streaming output works against
-  # this endpoint. Streaming is what makes the idle watchdog possible.
+  # Smoke test the model. The plain round trip goes FIRST: it proves the endpoint
+  # works and pays the cold-load cost once, so the streaming probe that follows is
+  # a test of streaming rather than of load time. Getting this order wrong on the
+  # 2026-09-10 run made the streaming probe time out on a cold start, which
+  # disabled the idle watchdog and let two iterations burn 150 minutes each.
   log "  smoke test: one round trip to $PRIMARY_MODEL (a cold load can take minutes) ..."
   local t0 t1
   t0="$(date +%s)"
-  watched_run "${SMOKE_TIMEOUT:-420}" 0 "$RUNDIR/smoke-stream.log" \
-      claude --model "$PRIMARY_MODEL" --output-format stream-json --verbose \
-             --print "Reply with exactly: PONG"
+  watched_run "${SMOKE_TIMEOUT:-600}" 0 "$RUNDIR/smoke-plain.log" \
+      claude --model "$PRIMARY_MODEL" --print "Reply with exactly: PONG"
   rc=$?
   t1="$(date +%s)"
-  if [ $rc -eq 0 ] && grep -q "PONG" "$RUNDIR/smoke-stream.log" 2>/dev/null; then
-    STREAM_ARGS="--output-format stream-json --verbose"
-    log "  ok    model responded in $((t1 - t0))s, streaming output works"
-    log "        idle watchdog active: an iteration silent for ${IDLE_TIMEOUT}s is killed"
+  if [ $rc -eq 0 ] && grep -q "PONG" "$RUNDIR/smoke-plain.log" 2>/dev/null; then
+    log "  ok    model responded in $((t1 - t0))s"
   else
-    log "  note  streaming did not work (exit $rc) - retrying without it"
-    t0="$(date +%s)"
-    watched_run "${SMOKE_TIMEOUT:-420}" 0 "$RUNDIR/smoke-plain.log" \
-        claude --model "$PRIMARY_MODEL" --print "Reply with exactly: PONG"
-    rc=$?
-    t1="$(date +%s)"
-    if [ $rc -eq 0 ] && grep -q "PONG" "$RUNDIR/smoke-plain.log" 2>/dev/null; then
+    log "  BAD   model did not respond correctly (exit $rc after $((t1 - t0))s). Output:"
+    tail -n 20 "$RUNDIR/smoke-plain.log" 2>/dev/null | logf
+    bad=1
+  fi
+
+  # Streaming is what makes the idle watchdog possible, so it earns a second
+  # round trip - now with the model resident. The evidence is JSON lines
+  # appearing at all; the probe does not have to run to completion.
+  if [ $bad -eq 0 ]; then
+    log "  probing streamed output (this is what enables the idle watchdog) ..."
+    watched_run "${STREAM_PROBE_TIMEOUT:-240}" 0 "$RUNDIR/smoke-stream.log" \
+        claude --model "$PRIMARY_MODEL" --output-format stream-json --verbose \
+               --print "Reply with exactly: PONG"
+    if grep -q '"type":"' "$RUNDIR/smoke-stream.log" 2>/dev/null; then
+      STREAM_ARGS="--output-format stream-json --verbose"
+      log "  ok    streaming works - idle watchdog ACTIVE (${IDLE_TIMEOUT}s of silence kills an iteration)"
+    else
       STREAM_ARGS=""
       IDLE_TIMEOUT=0
-      log "  ok    model responded in $((t1 - t0))s (non-streaming)"
-      log "        idle watchdog disabled - only the ${ITER_TIMEOUT}s hard timeout applies"
-    else
-      log "  BAD   model did not respond correctly (exit $rc after $((t1 - t0))s). Output:"
-      tail -n 20 "$RUNDIR/smoke-plain.log" 2>/dev/null | logf
-      bad=1
+      log "  note  no streamed output - idle watchdog DISABLED, only the ${ITER_TIMEOUT}s hard timeout applies"
     fi
   fi
 
@@ -625,6 +636,7 @@ shutdown() {
   fi
   ollama_unload_all
   log "  model unloaded from memory"
+  write_done "stopped with ./stop.sh" "${i:-0}"
   rm -f .driver.pid
   exit 130
 }
@@ -691,6 +703,9 @@ for i in $(seq 1 "$MAX_ITER"); do
   m="$(level_model "$LEVEL")"
   ctx="$(level_ctx "$LEVEL")"
 
+  if [ "$tf" -ge "$MAX_TASK_FAILS" ]; then
+    log "note: $task was blocked earlier and the agent has re-opened it - one attempt only"
+  fi
   log "=== iteration $i/$MAX_ITER | $task attempt $((tf + 1))/$MAX_TASK_FAILS | $left left, $(blocked) blocked | level $LEVEL | $m @ ${ctx}tok | budget $((budget / 60))m | HEAD $(head_sha) ==="
 
   ptext="$(cat PROMPT.md 2>/dev/null)"
