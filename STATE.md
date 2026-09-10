@@ -246,3 +246,7 @@ Reason: last exit 0 at recovery level 3. Later tasks that depend on T-06 may als
 
 2026-09-10 08:07: T-06 ModMatrix + tests: contributions sum, results clamp to destination range, depth 0 is a no-op, negative depth inverts - SUCCESS.
 Implemented ModMatrix with all required functionality including slot management, source handling, depth application, and proper test coverage. All unit tests pass.
+
+2026-09-10 08:27: T-07 FilterStage + tests: rising cutoff raises spectral centroid monotonically, no NaN/Inf, stable at max resonance - SUCCESS.
+
+2026-09-10 09:05: T-08 DriveStage + tests: drive increases harmonic content vs clean, mix=0 is bit-identical, no NaN/Inf - SUCCESS.
