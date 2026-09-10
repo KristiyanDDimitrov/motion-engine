@@ -35,7 +35,16 @@ if ! ./drive.sh --check 2>&1 | tee logs/preflight.log; then
   exit 1
 fi
 
-[ -f run.log ] && mv run.log "logs/run.$(date '+%Y%m%d-%H%M%S').log"
+# Archive the previous run before this one overwrites it. Iteration logs restart
+# at 001 every run and memory.csv is appended to, so without this a 24h run
+# quietly destroys the evidence from the night before.
+if ls logs/iter-*.log >/dev/null 2>&1 || [ -f run.log ] || [ -f logs/memory.csv ]; then
+  ARCHIVE="logs/prev-$(date '+%Y%m%d-%H%M%S')"
+  mkdir -p "$ARCHIVE"
+  mv logs/iter-*.log logs/verify-*.log logs/memory.csv logs/preflight.log "$ARCHIVE"/ 2>/dev/null
+  [ -f run.log ] && mv run.log "$ARCHIVE/run.log"
+  echo "Previous run archived to $ARCHIVE/"
+fi
 rm -f .driver_done
 
 # Own process group, so ./stop.sh can take down the whole tree in one signal.
