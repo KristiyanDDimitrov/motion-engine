@@ -282,3 +282,25 @@ T-05 LFO tempo sync - the root cause was in `setTempoSyncedRate()` which compute
 
 2026-09-11 04:15: DRIVER blocked T-09 after 3 attempts.
 Reason: last exit 126 at recovery level 3. Later tasks that depend on T-09 may also fail; review by hand.
+
+2026-09-11 05:10: DRIVER REJECTED the commit for T-10.
+./scripts/test.sh exited 3 immediately after it, so the commit was rolled
+back. Tail of the failing output:
+          ProcessBlockChainTests::runTest() in TestProcessBlockChain.cpp.o
+          ProcessBlockChainTests::runTest() in TestProcessBlockChain.cpp.o
+      "MotionEngineAudioProcessor::MotionEngineAudioProcessor()", referenced from:
+          ProcessBlockChainTests::runTest() in TestProcessBlockChain.cpp.o
+      "MotionEngineAudioProcessor::~MotionEngineAudioProcessor()", referenced from:
+          ProcessBlockChainTests::runTest() in TestProcessBlockChain.cpp.o
+          ProcessBlockChainTests::runTest() in TestProcessBlockChain.cpp.o
+          ProcessBlockChainTests::runTest() in TestProcessBlockChain.cpp.o
+          ProcessBlockChainTests::runTest() in TestProcessBlockChain.cpp.o
+    ld: symbol(s) not found for architecture arm64
+    clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+    make[2]: *** [MotionEngineTests_artefacts/Release/MotionEngineTests] Error 1
+    make[1]: *** [CMakeFiles/MotionEngineTests.dir/all] Error 2
+    make: *** [all] Error 2
+    ERROR: build failed.
+Next run: ./scripts/test.sh must exit 0 before you commit. Exit 2 means the
+suite registered no real tests - add Tests/Test<Component>.cpp with a
+juce::UnitTest subclass and a static instance of it.
