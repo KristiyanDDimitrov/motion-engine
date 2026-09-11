@@ -11,6 +11,6 @@
 - [x] T-09 Wire APVTS with every parameter, GenericAudioProcessorEditor, state save/restore round-trip test
 - [x] T-10 Assemble full processBlock chain: analysis -> matrix -> filter -> drive -> gain/mix
 - [x] T-11 Robustness tests: 44.1/48/96 kHz, block sizes 32/64/512/2048, silence in gives silence out, no NaN anywhere
-- [ ] T-12 pluginval strictness 5 passes
+- [x] T-12 pluginval strictness 5 passes
 - [ ] T-13 pluginval strictness 10 passes; fix whatever it surfaces
 - [ ] T-14 Write README.md: what it is, how to build, how to load in Live, current limitations

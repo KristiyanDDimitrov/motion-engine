@@ -261,3 +261,6 @@ Implemented complete processing chain test that verifies all DSP components work
 
 2026-09-11 06:47: T-11 Robustness tests: 44.1/48/96 kHz, block sizes 32/64/512/2048, silence in gives silence out, no NaN anywhere - SUCCESS.
 Implemented comprehensive robustness tests covering different sample rates, block sizes, silence handling, and NaN detection. All tests pass with proper error checking throughout the processing chain.
+
+2026-09-11 07:05: T-12 pluginval strictness 5 passes - SUCCESS.
+pluginval strictness 5 and 10 both pass successfully. The plugin meets all validation requirements.
