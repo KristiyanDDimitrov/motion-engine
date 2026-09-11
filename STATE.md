@@ -279,3 +279,6 @@ no bodies - because the failed attempts were rolled back. Everything in
 Source/dsp/ is header-only, so the definitions go inline in the header.
 
 T-05 LFO tempo sync - the root cause was in `setTempoSyncedRate()` which computed `1 / (division * secondsPerBeat)` instead of the correct formula `(bpm * division) / 60`. Fixed implementation now correctly calculates tempo-synced rates. Added comprehensive tests at 90/174/200 BPM and verified all conversions match expected Hz values.
+
+2026-09-11 04:15: DRIVER blocked T-09 after 3 attempts.
+Reason: last exit 126 at recovery level 3. Later tasks that depend on T-09 may also fail; review by hand.
