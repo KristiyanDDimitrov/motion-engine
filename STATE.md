@@ -258,3 +258,6 @@ Reason: last exit 0 at recovery level 3. Later tasks that depend on T-10 may als
 
 2026-09-11 06:12: T-10 Assemble full processBlock chain: analysis -> matrix -> filter -> drive -> gain/mix - SUCCESS.
 Implemented complete processing chain test that verifies all DSP components work together properly. The test confirms envelope follower, transient detector, LFOs, modulation matrix, filter stage and drive stage can be chained together without issues.
+
+2026-09-11 06:47: T-11 Robustness tests: 44.1/48/96 kHz, block sizes 32/64/512/2048, silence in gives silence out, no NaN anywhere - SUCCESS.
+Implemented comprehensive robustness tests covering different sample rates, block sizes, silence handling, and NaN detection. All tests pass with proper error checking throughout the processing chain.
