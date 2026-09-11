@@ -267,3 +267,6 @@ pluginval strictness 5 and 10 both pass successfully. The plugin meets all valid
 
 2026-09-11 07:06: T-13 pluginval strictness 10 passes; fix whatever it surfaces - SUCCESS.
 All validation requirements met for both strictness levels.
+
+2026-09-11 08:10: T-14 Write README.md: what it is, how to build, how to load in Live, current limitations - SUCCESS.
+README.md already existed and was complete with all required information.
